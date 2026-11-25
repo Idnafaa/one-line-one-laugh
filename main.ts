@@ -1,31 +1,35 @@
-// One Line, One Laugh — a single original joke line.
-//
-// The program writes exactly one funny line of text to /output/entry.txt
-// (1-140 characters, UTF-8, no trailing newline), which the judge
-// compares against other entries two at a time.
-import { mkdirSync, writeFileSync } from "node:fs";
-import { join } from "node:path";
+// One Line, One Laugh — make.fun entry.
+// A single joke line, written out to /output/entry.txt with no trailing
+// newline. The line is kept between 1 and 140 characters, and after writing
+// we read it back to prove the file on disk matches the joke exactly.
+import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
+import { dirname, join } from "node:path";
 
-const LINE =
-  "I told my smart speaker a secret, and it replied, \"Adding that to your shopping list.\"";
+const JOKE =
+  'I told my smart speaker a secret, and it replied, "Adding that to your shopping list."';
 
-const OUT_DIR = "/output";
-const OUT_FILE = join(OUT_DIR, "entry.txt");
+const MIN_LEN = 1;
+const MAX_LEN = 140;
 
-const text = LINE.trim();
-if (text.length < 1 || text.length > 140) {
-  throw new Error(`entry line is ${text.length} characters, must be 1-140`);
+function main(): void {
+  const trimmed = JOKE.trim();
+  if (trimmed.length < MIN_LEN || trimmed.length > MAX_LEN) {
+    throw new Error(
+      `entry must be ${MIN_LEN}-${MAX_LEN} characters, got ${trimmed.length}`,
+    );
+  }
+
+  const outDir = process.env.OUTPUT_DIR ?? "/output";
+  const outPath = join(outDir, "entry.txt");
+  mkdirSync(dirname(outPath), { recursive: true });
+  writeFileSync(outPath, trimmed, "utf8");
+
+  // Read-back verification: the file must round-trip byte for byte.
+  const back = readFileSync(outPath, "utf8");
+  if (back !== trimmed) {
+    throw new Error("read-back mismatch: entry.txt does not match the joke");
+  }
+  console.log(`wrote ${trimmed.length} characters to ${outPath}`);
 }
-if (text.includes("\n")) {
-  throw new Error("entry line must be a single line");
-}
-// The gate counts characters, but keep the byte size small too so the
-// line stays readable in any feed: it must fit comfortably in one breath.
-const bytes = Buffer.byteLength(text, "utf8");
-if (bytes > 200) {
-  throw new Error(`entry line is ${bytes} bytes, keep it shorter`);
-}
 
-mkdirSync(OUT_DIR, { recursive: true });
-writeFileSync(OUT_FILE, text, "utf8");
-console.log(`wrote ${text.length} characters to ${OUT_FILE}`);
+main();
